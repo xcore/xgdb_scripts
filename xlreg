@@ -1,6 +1,22 @@
 define xlreg
-
   set $num_tiles = 0
+  xlreg_taps
+end
+
+define xlreg_AnA
+  set $usbadc = 1
+  set $num_tiles = 1
+  xlreg_taps
+end
+
+define xlreg_UnA
+  set $usbadc = 2
+  set $num_tiles = 1
+  xlreg_taps
+end
+
+define xlreg_taps
+
   xcore apply all set $num_tiles = $num_tiles + 1
 
   set $tap = 2 * ($num_tiles - 1)
@@ -8,18 +24,34 @@ define xlreg
 
   while( $tap >= 0 )
   
-    printf "Tile %d (Tap %d)\n", $tile, $tap
-    printf "  SSwitch\n"
 
-    sysreg read $tap 1 0x5
-    printf "    Node id 0x%04x\n", $sysregval
+    sysreg read $tap 1 0x0 
+    if ( $sysregval != 0xf080000)
+      printf "Tile %d (Tap %d)\n", $tile, $tap
+      printf "  SSwitch\n"
 
-    sysreg read $tap 1 0x6
-    printf "    PLL 0x%04x\n", $sysregval
+      sysreg read $tap 1 0x5
+      printf "    Node id 0x%04x\n", $sysregval
 
-    sysreg read $tap 1 0x0
-    set $bootmode = ( $sysregval >> 16 ) & 0xff
-    printf "    BootMode : 0x%04x\n", $bootmode
+      sysreg read $tap 1 0x6
+      set $pllod = ($sysregval) >> 23 & 0x7
+      set $pllf = ($sysregval) >> 8 & 0x7FF
+      set $pllr = ($sysregval) >> 0 & 0x7F
+      set $pllratio = ((float)$pllf+1)/2/($pllr+1)/($pllod+1)
+      printf "    PLL reg 0x%08x [OD=%d+1 F=(%d+1)/2 R=%d+1]\n            ratio %f [%d/%d/%d @20/24/25 Mhz]\n",  $sysregval, $pllod, $pllf, $pllr, $pllratio, 20*$pllratio, 24 * $pllratio, 25*$pllratio
+
+      sysreg read $tap 1 0x0
+      set $bootmode = ( $sysregval >> 16 ) & 0xff
+      printf "    BootMode : 0x%02x\n", $bootmode
+    else
+      if ($usbadc == 2) 
+        printf "USB"
+      else 
+        printf "ADC"
+      end
+      printf " Tile (Tap %d)\n", $tap
+      printf "  SSwitch\n"
+    end
 
     sysreg read $tap 1 0xc
     set $dir1 = $sysregval
