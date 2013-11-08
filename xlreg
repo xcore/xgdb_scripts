@@ -15,177 +15,178 @@ define xlreg_UnA
   xlreg_taps
 end
 
-define xlreg_taps
+define xlreg_tile
+  sysreg read $tap 1 0x0
+  set $sswitch_version = $sysregval & 0xff
+  if ($sysregval != 0xf080000)
+    printf "Tile %d (Tap %d)\n", $tile, $tap
+    printf "  SSwitch\n"
 
+    sysreg read $tap 1 0x5
+    printf "    Node id 0x%04x\n", $sysregval
+
+    sysreg read $tap 1 0x6
+    set $pllod = ($sysregval) >> 23 & 0x7
+    set $pllf = ($sysregval) >> 8 & 0x7FF
+    set $pllr = ($sysregval) >> 0 & 0x7F
+    set $pllratio = ((float)$pllf+1)/2/($pllr+1)/($pllod+1)
+    printf "    PLL reg 0x%08x [OD=%d+1 F=(%d+1)/2 R=%d+1]\n            ratio %f [%d/%d/%d @20/24/25 Mhz]\n",  $sysregval, $pllod, $pllf, $pllr, $pllratio, 20*$pllratio, 24 * $pllratio, 25*$pllratio
+
+    sysreg read $tap 1 0x0
+    set $bootmode = ( $sysregval >> 16 ) & 0xff
+    printf "    BootMode : 0x%02x\n", $bootmode
+  else
+    if ($usbadc == 2) 
+      printf "USB"
+    else 
+      printf "ADC"
+    end
+    printf " Tile (Tap %d)\n", $tap
+    printf "  SSwitch\n"
+  end
+
+  sysreg read $tap 1 0x1
+  set $num_xlinks = ($sysregval) & 0xff
+  set $num_tiles = ($sysregval >> 8) & 0xff
+  set $num_plinks = ($sysregval >> 16) & 0xff
+
+  sysreg read $tap 1 0xc
+  set $dir1 = $sysregval
+  sysreg read $tap 1 0xd
+  set $dir2 = $sysregval
+  printf "    Dirs: %08x%08x\n", $dir2, $dir1
+
+  set $linknum = 0
+
+  while ($linknum < $num_xlinks)
+    set $regnum = 0x20 + $linknum
+    sysreg read $tap 1 $regnum
+    set $direction = ($sysregval >> 8) & 0xff
+    set $srcinuse = ($sysregval >> 0) & 1
+    set $dstinuse = ($sysregval >> 1) & 1
+    set $junked = ($sysregval >> 2) & 1
+    set $network = ($sysregval >> 4) & 0x3
+    set $srctargetid = ($sysregval >> 17) & 0xff
+    set $srctargettype = ($sysregval >> 25) & 0x3
+
+    set $regnum = 0x80 + $linknum
+    sysreg read $tap 1 $regnum
+    set $t1 = ( $sysregval ) & 0x7ff
+    set $t2 = ( $sysregval >> 11 ) & 0x7ff
+    set $cansend = ( $sysregval >> 25 ) & 0x1
+    set $canrecv = ( $sysregval >> 26 ) & 0x1
+    set $width = ( $sysregval >> 30 ) & 0x1
+    set $enabled = ( $sysregval >> 31 ) & 0x1
+
+    printf "    Link %d ", $linknum
+
+    if ($enabled == 1)
+      printf " siu:"
+      showbool $srcinuse
+      printf " diu:"
+      showbool $dstinuse
+      printf " junk:"
+      showbool $junked
+      printf " net:%d", $network
+      
+      printf " srctargetid:%u srctargettype:%u", $srctargetid, $srctargettype
+
+      printf " %dw ", ($width==0)?2:5
+      printf "%d/%d ", $t1, $t2
+      printf "d:%d ", $direction
+      printf "snd:"
+      showbool $cansend
+      printf " rec:"
+      showbool $canrecv
+    else
+      printf " not enabled"
+    end
+
+    set $linknum = $linknum + 1
+
+    printf "\n"
+  end
+
+  set $linknum = 0
+
+  while ($linknum < $num_plinks)
+    set $regnum = 0x40 + $linknum
+    sysreg read $tap 1 $regnum
+    set $srcinuse = ($sysregval >> 0) & 1
+    set $dstinuse = ($sysregval >> 1) & 1
+    set $junked = ($sysregval >> 2) & 1
+    set $network = ($sysregval >> 4) & 0x3
+    set $srctargetid = ($sysregval >> 16) & 0xff
+    set $srctargettype = ($sysregval >> 24) & 0x3
+
+    printf "    PLink %d", $linknum
+
+    printf " siu:"
+    showbool $srcinuse
+    printf " diu:"
+    showbool $dstinuse
+    printf " junk:"
+    showbool $junked
+    printf " net:%d", $network
+
+    printf " srctargetid:%u srctargettype:%u", $srctargetid, $srctargettype
+
+    set $linknum = $linknum + 1
+
+    printf "\n"
+  end
+
+  set $tilenum = 0
+  while ($tilenum < $num_tiles)
+    printf "  PSwitch %d\n", $tilenum
+
+    set $linknum = 0
+
+    while ($linknum < 4)
+      set $regnum = 0x10 + $linknum
+      sysreg read $tap 2 + tilenum $regnum
+      set $srcinuse = ($sysregval >> 0) & 1
+      set $dstinuse = ($sysregval >> 1) & 1
+      set $junked = ($sysregval >> 2) & 1
+      set $network = ($sysregval >> 4) & 0x3
+      set $srctargetid = ($sysregval >> 16) & 0xff
+      set $srctargettype = ($sysregval >> 24) & 0x3
+
+      printf "    PLink %d", $linknum
+
+
+      printf " siu:"
+      showbool $srcinuse
+      printf " diu:"
+      showbool $dstinuse
+      printf " junk:"
+      showbool $junked
+      printf " net:%d", $network
+
+      printf " srctargetid:%u srctargettype:%u", $srctargetid, $srctargettype
+
+      set $linknum = $linknum + 1
+
+      printf "\n"
+      set $tilenum = $tilenum + 1
+    end
+  end
+end
+
+define xlreg_taps
   xcore apply all set $num_tiles = $num_tiles + 1
 
   set $tap = 2 * ($num_tiles - 1)
   set $tile = 0
 
-  while( $tap >= 0 )
-  
-
-    sysreg read $tap 1 0x0 
-    if ( $sysregval != 0xf080000)
-      printf "Tile %d (Tap %d)\n", $tile, $tap
-      printf "  SSwitch\n"
-
-      sysreg read $tap 1 0x5
-      printf "    Node id 0x%04x\n", $sysregval
-
-      sysreg read $tap 1 0x6
-      set $pllod = ($sysregval) >> 23 & 0x7
-      set $pllf = ($sysregval) >> 8 & 0x7FF
-      set $pllr = ($sysregval) >> 0 & 0x7F
-      set $pllratio = ((float)$pllf+1)/2/($pllr+1)/($pllod+1)
-      printf "    PLL reg 0x%08x [OD=%d+1 F=(%d+1)/2 R=%d+1]\n            ratio %f [%d/%d/%d @20/24/25 Mhz]\n",  $sysregval, $pllod, $pllf, $pllr, $pllratio, 20*$pllratio, 24 * $pllratio, 25*$pllratio
-
-      sysreg read $tap 1 0x0
-      set $bootmode = ( $sysregval >> 16 ) & 0xff
-      printf "    BootMode : 0x%02x\n", $bootmode
-    else
-      if ($usbadc == 2) 
-        printf "USB"
-      else 
-        printf "ADC"
-      end
-      printf " Tile (Tap %d)\n", $tap
-      printf "  SSwitch\n"
-    end
-
-    sysreg read $tap 1 0xc
-    set $dir1 = $sysregval
-    sysreg read $tap 1 0xd
-    set $dir2 = $sysregval
-    printf "    Dirs: %08x%08x\n", $dir2, $dir1
-
-    set $linknum = 0
-
-    while( $linknum < 8 )
-
-      set $regnum = 0x20 + $linknum
-      sysreg read $tap 1 $regnum
-      set $direction = ( $sysregval >> 8 ) & 0xff
-      set $srcinuse = ( $sysregval >> 0 ) & 1
-      set $dstinuse = ( $sysregval >> 1 ) & 1
-      set $junked = ( $sysregval >> 2 ) & 1
-      set $network = ( $sysregval >> 4 ) & 0x3
-      set $srctargetid = ( $sysregval >> 17 ) & 0xff
-      set $srctargettype = ( $sysregval >> 25 ) & 0x3
-
-      set $regnum = 0x80 + $linknum
-      sysreg read $tap 1 $regnum
-      set $t1 = ( $sysregval ) & 0x7ff
-      set $t2 = ( $sysregval >> 11 ) & 0x7ff
-      set $cansend = ( $sysregval >> 25 ) & 0x1
-      set $canrecv = ( $sysregval >> 26 ) & 0x1
-      set $width = ( $sysregval >> 30 ) & 0x1
-      set $enabled = ( $sysregval >> 31 ) & 0x1
-
-      printf "    Link %d ", $linknum
-
-      if( $enabled == 1 )
-        printf " siu:"
-        showbool $srcinuse
-        printf " diu:"
-        showbool $dstinuse
-        printf " junk:"
-        showbool $junked
-        printf " net:%d", $network
-        
-	printf " srctargetid:%u srctargettype:%u", $srctargetid, $srctargettype
-
-        printf " %dw ", ($width==0)?2:5
-        printf "%d/%d ", $t1, $t2
-        printf "d:%d ", $direction
-        printf "snd:"
-        showbool $cansend
-        printf " rec:"
-        showbool $canrecv
-      else
-        printf " not enabled"
-      end
-
-      set $linknum = $linknum + 1
-
-      printf "\n"
-
-    end
-
-    set $linknum = 0
-
-    while( $linknum < 4 )
-
-      set $regnum = 0x40 + $linknum
-      sysreg read $tap 1 $regnum
-      set $srcinuse = ( $sysregval >> 0 ) & 1
-      set $dstinuse = ( $sysregval >> 1 ) & 1
-      set $junked = ( $sysregval >> 2 ) & 1
-      set $network = ( $sysregval >> 4 ) & 0x3
-      set $srctargetid = ( $sysregval >> 16 ) & 0xff
-      set $srctargettype = ( $sysregval >> 24 ) & 0x3
-
-      printf "    PLink %d", $linknum
-
-      printf " siu:"
-      showbool $srcinuse
-      printf " diu:"
-      showbool $dstinuse
-      printf " junk:"
-      showbool $junked
-      printf " net:%d", $network
-
-      printf " srctargetid:%u srctargettype:%u", $srctargetid, $srctargettype
-
-      set $linknum = $linknum + 1
-
-      printf "\n"
-
-    end
-
-    printf "  PSwitch\n"
-
-    set $linknum = 0
-
-    while( $linknum < 4 )
-
-      set $regnum = 0x10 + $linknum
-      sysreg read $tap 2 $regnum
-      set $srcinuse = ( $sysregval >> 0 ) & 1
-      set $dstinuse = ( $sysregval >> 1 ) & 1
-      set $junked = ( $sysregval >> 2 ) & 1
-      set $network = ( $sysregval >> 4 ) & 0x3
-      set $srctargetid = ( $sysregval >> 16 ) & 0xff
-      set $srctargettype = ( $sysregval >> 24 ) & 0x3
-
-      printf "    PLink %d", $linknum
-
-
-      printf " siu:"
-      showbool $srcinuse
-      printf " diu:"
-      showbool $dstinuse
-      printf " junk:"
-      showbool $junked
-      printf " net:%d", $network
-
-      printf " srctargetid:%u srctargettype:%u", $srctargetid, $srctargettype
-
-      set $linknum = $linknum + 1
-
-      printf "\n"
-
-    end
-
+  while ($tap >= 0)
+    xlreg_tile
     set $tile = $tile + 1
     set $tap = $tap - 2
-
   end
-
 end
 
 define showbool
-
   set $bool = ($arg0)
 
   if( $bool == 0 )
@@ -193,5 +194,4 @@ define showbool
   else
     printf "T"
   end
-
 end
