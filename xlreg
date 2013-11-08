@@ -1,35 +1,26 @@
-define xlreg
-  set $num_tiles = 0
-  xlreg_taps
-end
-
-define xlreg_AnA
-  set $usbadc = 1
-  set $num_tiles = 1
-  xlreg_taps
-end
-
-define xlreg_UnA
-  set $usbadc = 2
-  set $num_tiles = 1
-  xlreg_taps
-end
-
-define set_is_xs1g
+define set_node_type
   sysreg read $tap 1 0x0
-  set $sswitch_version = $sysregval & 0xff
-  set $sswitch_revision = ($sysregval >> 8) & 0xff
+  set $version = $sysregval & 0xff
+  set $revision = ($sysregval >> 8) & 0xff
+  set $identifier = ($sysregval >> 24) & 0xff
 
-  if ($sswitch_version == 0)
+  set $is_xs1g = 0
+  set $is_analog_node = 0
+  if ($version == 0 && $identifier == 0)
     set $is_xs1g = 1
   else
-    set $is_xs1g = 0
+    if ($version == 0 && $identifier == 0xf)
+      set $is_analog_node = 1
+    end
   end
 end
 
 define xlreg_node
-  set_is_xs1g
-  if ($sysregval != 0xf080000)
+  set_node_type
+  if ($is_analog_node)
+    printf "Analog Tile (Tap %d)\n", $tap
+    printf "  SSwitch\n"
+  else
     printf "Node #%d (Tap %d)\n", $node, $tap
     printf "  SSwitch\n"
 
@@ -48,23 +39,21 @@ define xlreg_node
     sysreg read $tap 1 0x0
     set $bootmode = ( $sysregval >> 16 ) & 0xff
     printf "    BootMode : 0x%02x\n", $bootmode
-  else
-    if ($usbadc == 2)
-      printf "USB"
-    else
-      printf "ADC"
-    end
-    printf " Tile (Tap %d)\n", $tap
-    printf "  SSwitch\n"
   end
 
-  sysreg read $tap 1 0x1
-  set $num_plinks_per_tile = ($sysregval) & 0xff
-  set $num_tiles = ($sysregval >> 8) & 0xff
-  set $num_xlinks = ($sysregval >> 16) & 0xff
+  if ($is_analog_node)
+    set $num_plinks_per_tile = 0
+    set $num_tiles = 0
+    set $num_xlinks = 1
+  else
+    sysreg read $tap 1 0x1
+    set $num_plinks_per_tile = ($sysregval) & 0xff
+    set $num_tiles = ($sysregval >> 8) & 0xff
+    set $num_xlinks = ($sysregval >> 16) & 0xff
+  end
   set $num_plinks = $num_tiles * $num_plinks_per_tile
 
-  if (!$is_xs1g)
+  if (!$is_xs1g && !$is_analog_node)
     sysreg read $tap 1 0xc
     set $dir1 = $sysregval
     sysreg read $tap 1 0xd
@@ -75,15 +64,17 @@ define xlreg_node
   set $linknum = 0
 
   while ($linknum < $num_xlinks)
-    set $regnum = 0x20 + $linknum
-    sysreg read $tap 1 $regnum
-    set $srcinuse = ($sysregval >> 0) & 1
-    set $dstinuse = ($sysregval >> 1) & 1
-    set $junked = ($sysregval >> 2) & 1
-    set $network = ($sysregval >> 4) & 0x3
-    set $direction = ($sysregval >> 8) & 0xff
-    set $srctargetid = ($sysregval >> 17) & 0xff
-    set $srctargettype = ($sysregval >> 25) & 0x3
+    if (!$is_analog_node)
+      set $regnum = 0x20 + $linknum
+      sysreg read $tap 1 $regnum
+      set $srcinuse = ($sysregval >> 0) & 1
+      set $dstinuse = ($sysregval >> 1) & 1
+      set $junked = ($sysregval >> 2) & 1
+      set $network = ($sysregval >> 4) & 0x3
+      set $direction = ($sysregval >> 8) & 0xff
+      set $srctargetid = ($sysregval >> 17) & 0xff
+      set $srctargettype = ($sysregval >> 25) & 0x3
+    end
 
     set $regnum = 0x80 + $linknum
     sysreg read $tap 1 $regnum
@@ -98,25 +89,32 @@ define xlreg_node
       set $canrecv = ( $sysregval >> 26 ) & 0x1
     end
 
-    set $width = ( $sysregval >> 30 ) & 0x1
-    set $enabled = ( $sysregval >> 31 ) & 0x1
+    if ($is_analog_node)
+      set $width = 1
+      set $enabled = 1
+    else
+      set $width = ( $sysregval >> 30 ) & 0x1
+      set $enabled = ( $sysregval >> 31 ) & 0x1
+    end
 
     printf "    Link %d ", $linknum
 
     if ($enabled == 1)
-      printf " siu:"
-      showbool $srcinuse
-      printf " diu:"
-      showbool $dstinuse
-      printf " junk:"
-      showbool $junked
-      printf " net:%d", $network
+      if (!$is_analog_node)
+        printf " siu:"
+        showbool $srcinuse
+        printf " diu:"
+        showbool $dstinuse
+        printf " junk:"
+        showbool $junked
+        printf " net:%d", $network
 
-      printf " srctargetid:%u srctargettype:%u", $srctargetid, $srctargettype
+        printf " srctargetid:%u srctargettype:%u", $srctargetid, $srctargettype
+        printf "d:%d ", $direction
+      end
 
       printf " %dw ", ($width==0)?2:5
       printf "%d/%d ", $t1, $t2
-      printf "d:%d ", $direction
       if (!$is_xs1g)
         printf "snd:"
         showbool $cansend
@@ -197,17 +195,22 @@ define xlreg_node
   end
 end
 
-define xlreg_taps
+define xlreg
+  set $num_tiles = 0
   xcore apply all set $num_tiles = $num_tiles + 1
   set $tap = 0
-  set_is_xs1g
+  set_node_type
 
   if ($is_xs1g)
     set $num_nodes = $num_tiles / 4
   else
     set $num_nodes = $num_tiles
   end
-  set $tap = 2 * ($num_nodes - 1)
+  set $tap = 2 * ($num_nodes - 1) + 2
+  set_node_type
+  if (!$is_analog_node)
+    set $tap = $tap - 2
+  end
 
   set $node = 0
   while ($tap >= 0)
