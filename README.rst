@@ -49,19 +49,19 @@ Description
 
 Notation
 --------
-* EN: Link enabled
-* xw: 2 or 5 wire mode
-* x/x: inter-token delay/inter-symbol delay
-* d:x: Direction 
-* snd: Link has credits and can transmit True/False
-* rec: Link has issued credits and can receive True/False
-* siu: Source in use
-* diu: Destination in use
+* ``2w``: 2 wire mode
+* ``5w``: 5 wire mode
+* ``x/x``: inter-token delay/inter-symbol delay
+* ``d:x``: Direction
+* ``snd``: Link has credits and can transmit True/False
+* ``rec``: Link has issued credits and can receive True/False
+* ``siu``: Source in use
+* ``diu``: Destination in use
 
 Related Documentation
 ---------------------
 The corresponding values are read from the "Interconnect Registers”.
-They are described in XS1-L System Specification: http://www.xmos.com/en/published/xsysteml
+They are described in XS1-L System Specification: http://www.xmos.com/en/published/xsysteml.
 The status register offsets can be inferred from the script. E.g. "sysreg read $tap 1 0x0"
 reads from register at offset 0x0 which is the "Device identification”  register
 
