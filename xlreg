@@ -37,8 +37,9 @@ define xlreg_node
     end
 
     sysreg read $tap 1 0x0
-    set $bootmode = ( $sysregval >> 16 ) & 0xff
-    printf "    BootMode : 0x%02x\n", $bootmode
+    set $bootconfig = ( $sysregval >> 16 ) & 0xff
+    printf "    BootMode: "
+    showbootconfig($bootconfig)
   end
 
   if ($is_analog_node)
@@ -228,4 +229,52 @@ define showbool
   else
     printf "T"
   end
+end
+
+define showbootconfig
+  set $bootconfig = ($arg0)
+  # Display raw value.
+  printf "0x%02x", $bootconfig
+  if ($is_xs1g)
+    # TODO
+  else
+    # Extract bootmode
+    set $bootmode = ($bootconfig >> 2) & 0x1f
+    if ($bootmode == 0)
+      printf " (JTAG)"
+    else
+      if ($bootmode == 1)
+        printf " (Test)"
+      else
+        if ($bootmode == 2)
+          printf " (Channels, enabling internal links only)"
+        else
+          if ($bootmode == 3)
+            printf " (Channels, enabling internal links only)"
+          else
+            if ($bootmode == 4)
+              printf " (JTAG)"
+            else
+              if ($bootmode == 5)
+                printf " (Test)"
+              else
+                if ($bootmode == 6)
+                  printf " (Channels, enabling internal links and XLB)"
+                else
+                  if ($bootmode == 7)
+                    printf " (SPI)"
+                  else
+                    if ($bootmode == 8)
+                      printf " (RAM)"
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  printf "\n"
 end
