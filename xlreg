@@ -196,28 +196,53 @@ define xlreg_node
   end
 end
 
-define xlreg
-  set $num_tiles = 0
-  xcore apply all set $num_tiles = $num_tiles + 1
-  set $tap = 0
+define jtag_chain_node_iterate
   set_node_type
-
-  if ($is_xs1g)
-    set $num_nodes = $num_tiles / 4
+  if ($is_analog_node)
+    set $tap = $tap + 1
   else
-    set $num_nodes = $num_tiles
+    set $tap = $tap + 2
   end
-  set $tap = 2 * ($num_nodes - 1) + 2
+end
+
+define xlreg_discover_loop
   set_node_type
-  if (!$is_analog_node)
-    set $tap = $tap - 2
+  # Skip analog nodes
+  while ($is_analog_node)
+    set $num_nodes = $num_nodes + 1
+    jtag_chain_node_iterate
+    set_node_type
   end
+  sysreg read $tap 1 0x1
+  set $tiles_per_node = ($sysregval >> 8) & 0xff
+  set $tile_count = $tile_count + 1
+  if ($tile_count >= $tiles_per_node)
+    set $num_nodes = $num_nodes + 1
+    jtag_chain_node_iterate
+    set $tile_count = 0
+  end
+end
+
+define get_tap_for_node
+  set $tap = 0
+  set $node_index = 0
+  while ($node_index < $node)
+    jtag_chain_node_iterate
+    set $node_index = $node_index + 1
+  end
+end
+
+define xlreg
+  set $tap = 0
+  set $tile_count = 0
+  set $num_nodes = 0
+  xcore apply all xlreg_discover_loop
 
   set $node = 0
-  while ($tap >= 0)
+  while ($node < $num_nodes)
+    get_tap_for_node
     xlreg_node
     set $node = $node + 1
-    set $tap = $tap - 2
   end
 end
 
