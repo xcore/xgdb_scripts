@@ -102,7 +102,7 @@ define res_print_port
     res_print_cond $cond
     printf ", condData=0x%x\n", $condData
     printf "    "
-    res_print_if $masterSlave "master, " "slave, "
+    res_print_if $masterSlave "slave, " "master, "
     res_print_if $buffers "buffered, " "unbuffered, "
     if ($readyMode == 0)
       printf "noReady, "
