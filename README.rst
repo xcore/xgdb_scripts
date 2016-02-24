@@ -94,26 +94,6 @@ Example usage::
       inUse=1, started=1, stopping=0, fallDelay=0, riseDelay=0
       tWaiting=0, tNum=0
       clkSrc=0x00000001, rdySrc=0x00010000
-  Clock Block 1:
-      inUse=1, started=1, stopping=0, fallDelay=0, riseDelay=0
-      tWaiting=0, tNum=0
-      clkSrc=0x00000001, rdySrc=0x00010000
-  Clock Block 2:
-      inUse=1, started=1, stopping=0, fallDelay=0, riseDelay=0
-      tWaiting=0, tNum=0
-      clkSrc=0x00000001, rdySrc=0x00010000
-  Clock Block 3:
-      inUse=1, started=1, stopping=0, fallDelay=0, riseDelay=0
-      tWaiting=0, tNum=0
-      clkSrc=0x00000001, rdySrc=0x00010000
-  Clock Block 4:
-      inUse=1, started=1, stopping=0, fallDelay=0, riseDelay=0
-      tWaiting=0, tNum=0
-      clkSrc=0x00000001, rdySrc=0x00010000
-  Clock Block 5:
-      inUse=1, started=1, stopping=0, fallDelay=0, riseDelay=0
-      tWaiting=0, tNum=0
-      clkSrc=0x00000001, rdySrc=0x00010000
 
 The commands provided by this script are:
    * ``res_print_port <TILE> <PORTWIDTH> <PORTNUM>`` - Print details of specified port
@@ -141,3 +121,4 @@ all resources, then after sourcing the tilestate script do::
 *Note*: it is possible to print extra detailed information by setting the
 following flag after sourcing the script::
   (gdb) set $res_print_details = 1
+
