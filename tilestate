@@ -413,7 +413,7 @@ end
 define res_print_clkblk
   set $tile = $arg0
   set $clkblk = $arg1
-  set $resourceId = ($portNum << 8) | $RES_TYPE_CLKBLK
+  set $resourceId = ($clkblk << 8) | $RES_TYPE_CLKBLK
 
   # CTRL0
   resreg $tile $resourceId $PS_CTRL0
