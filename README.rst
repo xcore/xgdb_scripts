@@ -116,23 +116,23 @@ Example usage::
       clkSrc=0x00000001, rdySrc=0x00010000
 
 The commands provided by this script are:
-   * =res_print_port <TILE> <PORTWIDTH> <PORTNUM>= - Print details of specified port
-   * =res_print_ports <TILE>= - Print details of all ports on specified tile
-   * =res_print_timer <TILE> <TIMERNUM>= - Print details of specified timer
-   * =res_print_timers <TILE>= - Print details of all timers on specified tile
-   * =res_print_chanend <TILE> <CHANEND>= - Print details of specified channel end
-   * =res_print_chanends <TILE>= - Print details of all channel ends on specified tile
-   * =res_print_sync <TILE> <SYNCNUM>= - Print details of specified synchronizer
-   * =res_print_syncs <TILE>= - Print details of all synchronizers on specified tile
-   * =res_print_core <TILE> <CORENUM>= - Print details of specified core
-   * =res_print_cores <TILE>= - Print details of all cores on specified tile
-   * =res_print_lock <TILE> <LOCKNUM>= - Print details of specified lock
-   * =res_print_locks <TILE>= - Print details of all locks on specified tile
-   * =res_print_clkblk <TILE> <CLKBLKNUM>= - Print details of specified clock block
-   * =res_print_clkblks <TILE>= - Print details of all clock blocks on specified tile
-   * =res_print_divider <TILE>= - Print details of specified divider
-   * =res_print_tile_resources <TILE>= - Print details of all resources on specified tile
-   * =res_print_all= - Print all resources on tiles 0 & 1
+   * ``res_print_port <TILE> <PORTWIDTH> <PORTNUM>`` - Print details of specified port
+   * ``res_print_ports <TILE>`` - Print details of all ports on specified tile
+   * ``res_print_timer <TILE> <TIMERNUM>`` - Print details of specified timer
+   * ``res_print_timers <TILE>`` - Print details of all timers on specified tile
+   * ``res_print_chanend <TILE> <CHANEND>`` - Print details of specified channel end
+   * ``res_print_chanends <TILE>`` - Print details of all channel ends on specified tile
+   * ``res_print_sync <TILE> <SYNCNUM>`` - Print details of specified synchronizer
+   * ``res_print_syncs <TILE>`` - Print details of all synchronizers on specified tile
+   * ``res_print_core <TILE> <CORENUM>`` - Print details of specified core
+   * ``res_print_cores <TILE>`` - Print details of all cores on specified tile
+   * ``res_print_lock <TILE> <LOCKNUM>`` - Print details of specified lock
+   * ``res_print_locks <TILE>`` - Print details of all locks on specified tile
+   * ``res_print_clkblk <TILE> <CLKBLKNUM>`` - Print details of specified clock block
+   * ``res_print_clkblks <TILE>`` - Print details of all clock blocks on specified tile
+   * ``res_print_divider <TILE>`` - Print details of specified divider
+   * ``res_print_tile_resources <TILE>`` - Print details of all resources on specified tile
+   * ``res_print_all`` - Print all resources on tiles 0 & 1
 
 *Note*: by default only active resources will be displayed. In order to display
 all resources, then after sourcing the tilestate script do::
