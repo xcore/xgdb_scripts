@@ -1,6 +1,6 @@
 # Enable for more detailed information
 set $res_print_details = 0
-set $res_print_not_inUse = 0
+set $res_print_not_inuse = 0
 
 set $PS_CTRL0  = 0
 set $PS_CTRL1  = 1
@@ -74,7 +74,7 @@ define res_print_port
   resreg $tile $resourceId $PS_CTRL0
 
   set $inUse = $resregval & 0x1
-  if ($inUse || $res_print_not_inUse)
+  if ($inUse || $res_print_not_inuse)
     set $ieMode      = ($resregval >>  1) & 0x1
     set $ieEnabled   = ($resregval >>  2) & 0x1
     set $direction   = ($resregval >>  3) & 0x1
@@ -202,7 +202,7 @@ define res_print_timer
   resreg $tile $resourceId $PS_CTRL0
 
   set $inUse = $resregval & 0x1
-  if ($inUse || $res_print_not_inUse)
+  if ($inUse || $res_print_not_inuse)
     set $ieMode    = ($resregval >>  1) & 0x1
     set $ieEnabled = ($resregval >>  2) & 0x1
     set $ready     = ($resregval >>  3) & 0x1
@@ -246,7 +246,7 @@ define res_print_chanend
   resreg $tile $resourceId $PS_CTRL0
 
   set $inUse = $resregval & 0x1
-  if ($inUse || $res_print_not_inUse)
+  if ($inUse || $res_print_not_inuse)
     set $ieMode     = ($resregval >>  1) & 0x1
     set $ieEnabled  = ($resregval >>  2) & 0x1
     set $inReady    = ($resregval >>  4) & 0x1
@@ -299,7 +299,7 @@ define res_print_sync
   resreg $tile $resourceId $PS_CTRL0
 
   set $inUse = $resregval & 0x1
-  if ($inUse || $res_print_not_inUse)
+  if ($inUse || $res_print_not_inuse)
     set $mSynced = ($resregval >> 1) & 0x1
     set $join    = ($resregval >> 2) & 0x1
     set $master  = ($resregval >> 8) & 0xff
@@ -344,7 +344,7 @@ define res_print_core
   resreg $tile $resourceId $PS_CTRL0
 
   set $inUse = $resregval & 0x1
-  if ($inUse || $res_print_not_inUse)
+  if ($inUse || $res_print_not_inuse)
     set $msync  = ($resregval >> 1) & 0x1
     set $ssync  = ($resregval >> 2) & 0x1
     set $master = ($resregval >> 8) & 0xff
@@ -375,7 +375,7 @@ define res_print_lock
   resreg $tile $resourceId $PS_CTRL0
 
   set $inUse = $resregval & 0x1
-  if ($inUse || $res_print_not_inUse)
+  if ($inUse || $res_print_not_inuse)
     set $owned = ($resregval >> 1) & 0x1
     set $owner = ($resregval >> 8) & 0xff
 
@@ -419,7 +419,7 @@ define res_print_clkblk
   resreg $tile $resourceId $PS_CTRL0
 
   set $inUse = $resregval & 0x1
-  if ($inUse || $res_print_not_inUse)
+  if ($inUse || $res_print_not_inuse)
     set $started  = ($resregval >>  1) & 0x1
     set $stopping = ($resregval >>  2) & 0x1
     set $tWaiting = ($resregval >> 23) & 0x1
@@ -464,7 +464,7 @@ define res_print_divider
   resreg $tile $resourceId $PS_CTRL0
 
   set $inUse = $resregval & 0x1
-  if ($inUse || $res_print_not_inUse)
+  if ($inUse || $res_print_not_inuse)
     set $owned  = ($resregval >> 1) & 0x1
     set $owner = ($resregval >> 8) & 0xff
 
