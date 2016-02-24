@@ -97,7 +97,7 @@ define res_print_port
     res_print_if $direction "    output" "    input"
     printf ", inUse=%d, ieMode=", $inUse
     res_print_if $ieMode "I" "E"
-    printf ", $ieEnabled=%d", $ieEnabled
+    printf ", ieEnabled=%d", $ieEnabled
     printf ", cond="
     res_print_cond $cond
     printf ", condData=0x%x\n", $condData
@@ -214,7 +214,7 @@ define res_print_timer
     printf "Timer %d:\n", $timer
     printf "    inUse=%d, ieMode=", $inUse
     res_print_if $ieMode "I" "E"
-    printf ", $ieEnabled=%d, ready=%d, cond=", $ieEnabled, $ready
+    printf ", ieEnabled=%d, ready=%d, cond=", $ieEnabled, $ready
     res_print_cond $cond
     printf "\n    "
     if $evValid
@@ -260,7 +260,7 @@ define res_print_chanend
     printf "Chanend %d:\n", $chanend
     printf "    inUse=%d, ieMode=", $inUse
     res_print_if $ieMode "I" "E"
-    printf ", $ieEnabled=%d, ready=%d, cond=", $ieEnabled, $ready
+    printf ", ieEnabled=%d, ready=%d, cond=", $ieEnabled, $ready
     res_print_cond $cond
     printf "\n    "
     if $evValid
