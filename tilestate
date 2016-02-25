@@ -1,0 +1,516 @@
+# Enable for more detailed information
+set $res_print_details = 0
+set $res_print_not_inuse = 0
+
+set $PS_CTRL0  = 0
+set $PS_CTRL1  = 1
+set $PS_CTRL2  = 2
+set $PS_VECTOR = 3
+set $PS_EV     = 4
+set $PS_DATA   = 5
+set $PS_CLKSRC = 6
+set $PS_RDYSRC = 7
+set $PS_TBV0   = 8
+
+set $NUM_TIMERS   = 10
+set $NUM_CHANENDS = 32
+set $NUM_SYNCS    =  7
+set $NUM_CORES    =  8
+set $NUM_LOCKS    =  4
+set $NUM_CLKBLKS  =  6
+
+set $RES_TYPE_PORT    = 0
+set $RES_TYPE_TIMER   = 1
+set $RES_TYPE_CHANEND = 2
+set $RES_TYPE_SYNC    = 3
+set $RES_TYPE_CORE    = 4
+set $RES_TYPE_LOCK    = 5
+set $RES_TYPE_CLKBLK  = 6
+set $RES_TYPE_COPROC  = 7
+
+################################################################################
+# Utilities
+################################################################################
+define res_print_if
+  if $arg0
+    printf $arg1
+  else
+    printf $arg2
+  end
+end
+
+################################################################################
+# Ports
+################################################################################
+define res_print_cond
+  set $cond = $arg0
+  if ($cond == 5)
+    printff "LESS"
+  end
+  if ($cond == 4)
+    printf "GREATER"
+  end
+  if ($cond == 3)
+    printf "NEQ"
+  end
+  if ($cond == 2)
+    printf "EQ"
+  end
+  if ($cond == 1)
+    printf "AFTER"
+  end
+  if ($cond == 0)
+    printf "NONE"
+  end
+end
+
+define res_print_port
+  set $tile = $arg0
+  set $portWidth = $arg1
+  set $portNum = $arg2
+  set $resourceId = ($portWidth << 16) | ($portNum << 8) | $RES_TYPE_PORT
+
+  # CTRL0
+  resreg $tile $resourceId $PS_CTRL0
+
+  set $inUse = $resregval & 0x1
+  if ($inUse || $res_print_not_inuse)
+    set $ieMode      = ($resregval >>  1) & 0x1
+    set $ieEnabled   = ($resregval >>  2) & 0x1
+    set $direction   = ($resregval >>  3) & 0x1
+    set $cond        = ($resregval >>  4) & 0xf
+    set $masterSlave = ($resregval >>  8) & 0x1
+    set $buffers     = ($resregval >>  9) & 0x1
+    set $readyMode   = ($resregval >> 10) & 0x3
+    set $portType    = ($resregval >> 12) & 0x3
+    set $invert      = ($resregval >> 14) & 0x1
+    set $sDelay      = ($resregval >> 15) & 0x1
+    set $evValid     = ($resregval >> 22) & 0x1
+    set $tWaiting    = ($resregval >> 23) & 0x1
+    set $tNum        = ($resregval >> 24) & 0xff
+
+    # DATA
+    resreg $tile $resourceId $PS_DATA
+    set $condData = $resregval
+
+    printf "%d-bit Port %d:\n", $portWidth, $portNum
+    res_print_if $direction "    output" "    input"
+    printf ", inUse=%d, ieMode=", $inUse
+    res_print_if $ieMode "I" "E"
+    printf ", ieEnabled=%d", $ieEnabled
+    printf ", cond="
+    res_print_cond $cond
+    printf ", condData=0x%x\n", $condData
+    printf "    "
+    res_print_if $masterSlave "slave, " "master, "
+    res_print_if $buffers "buffered, " "unbuffered, "
+    if ($readyMode == 0)
+      printf "noReady, "
+    else
+      if ($readyMode == 1)
+        printf "strobed, "
+      else
+        printf "handshaken, "
+      end
+    end
+    if ($portType == 0)
+      printf "data port, "
+    else
+      if ($portType == 1)
+        printf "clock port, "
+      else
+        printf "ready port, "
+      end
+    end
+    res_print_if $invert "inverted, " "not inverted, "
+    res_print_if $sDelay "sample delay\n" "no sample delay\n"
+    printf "    "
+    if $evValid
+      resreg $tile $resourceId $PS_EV
+      printf "EV=0x%x, ", $resregval
+    end
+    printf "tWaiting=%d, tNum=%d\n", $tWaiting, $tNum
+
+    if ($res_print_details > 0)
+      # CTRL1
+      resreg $tile $resourceId $PS_CTRL1
+
+      set $drive       = $resregval & 0xff
+      set $tWidth      = ($resregval >>  8) & 0xff
+      set $sRegCount   = ($resregval >> 16) & 0xff
+      set $tRegFull    = ($resregval >> 24) & 0x1
+      set $changeDir   = ($resregval >> 25) & 0x1
+      set $syncR       = ($resregval >> 26) & 0x1
+      set $instC       = ($resregval >> 27) & 0x1
+      set $holdData    = ($resregval >> 28) & 0x1
+      set $waitForTime = ($resregval >> 29) & 0x1
+      set $timeMet     = ($resregval >> 30) & 0x1
+      set $endIn       = ($resregval >> 31) & 0x1
+
+      # CTRL2
+      resreg $tile $resourceId $PS_CTRL2
+
+      set $time     = $resregval & 0xffff
+      set $pinDelay = ($resregval >> 16) & 0x7
+
+      printf "    drive=0x%x, tWidth=%d, sRegCount=%d, tRegFull=%d, changeDir=%d, syncR=%d\n",\
+        $drive, $tWidth, $sRegCount, $tRegFull, $changeDir, $syncR
+      printf "    instCommitted=%d, holdData=%d, waitForTime=%d, timeMet=%d, endIn=%d\n",\
+        $instC, $holdData, $waitForTime, $timeMet, $endIn
+      printf "    time=0x%04x, pinDely=%d\n", $time, $pinDelay
+    end
+
+    # CLK/RDY source
+    resreg $tile $resourceId $PS_CLKSRC
+    set $clkSrc = $resregval
+    resreg $tile $resourceId $PS_RDYSRC
+    set $rdySrc = $resregval
+    printf "    clkSrc=0x%08x, rdySrc=0x%08x\n", $clkSrc, $rdySrc
+  end
+end
+
+define res_print_ports_of_width
+  set $tile = $arg0
+  set $width = $arg1
+  set $num_ports = $arg2
+
+  set $port_num = 0
+  while ($port_num < $num_ports)
+    res_print_port $tile $width $port_num
+    set $port_num = $port_num + 1
+  end
+end
+
+define res_print_ports
+  set $tile = $arg0
+  res_print_ports_of_width $tile  1 16
+  res_print_ports_of_width $tile  4  6
+  res_print_ports_of_width $tile  8  3
+  res_print_ports_of_width $tile 16  2
+  res_print_ports_of_width $tile 32  1
+end
+
+################################################################################
+# Timers
+################################################################################
+define res_print_timer
+  set $tile = $arg0
+  set $timer = $arg1
+  set $resourceId = ($timer << 8) | $RES_TYPE_TIMER
+
+  # Read the resource register
+  resreg $tile $resourceId $PS_CTRL0
+
+  set $inUse = $resregval & 0x1
+  if ($inUse || $res_print_not_inuse)
+    set $ieMode    = ($resregval >>  1) & 0x1
+    set $ieEnabled = ($resregval >>  2) & 0x1
+    set $ready     = ($resregval >>  3) & 0x1
+    set $cond      = ($resregval >>  4) & 0x1
+    set $evValid   = ($resregval >>  8) & 0x1
+    set $tWaiting  = ($resregval >> 23) & 0x1
+    set $tNum      = ($resregval >> 24) & 0xff
+
+    printf "Timer %d:\n", $timer
+    printf "    inUse=%d, ieMode=", $inUse
+    res_print_if $ieMode "I" "E"
+    printf ", ieEnabled=%d, ready=%d, cond=", $ieEnabled, $ready
+    res_print_cond $cond
+    printf "\n    "
+    if $evValid
+      resreg $tile $resourceId $PS_EV
+      printf "EV=0x%x, ", $resregval
+    end
+    printf "tWaiting=%d, tNum=%d\n", $tWaiting, $tNum
+  end
+end
+
+define res_print_timers
+  set $tile = $arg0
+  set $timer = 0
+  while ($timer < $NUM_TIMERS)
+    res_print_timer $tile $timer
+    set $timer = $timer + 1
+  end
+end
+
+################################################################################
+# Chanends
+################################################################################
+define res_print_chanend
+  set $tile = $arg0
+  set $chanend = $arg1
+  set $resourceId = ($chanend << 8) | $RES_TYPE_CHANEND
+
+  # Read the resource register
+  resreg $tile $resourceId $PS_CTRL0
+
+  set $inUse = $resregval & 0x1
+  if ($inUse || $res_print_not_inuse)
+    set $ieMode     = ($resregval >>  1) & 0x1
+    set $ieEnabled  = ($resregval >>  2) & 0x1
+    set $inReady    = ($resregval >>  4) & 0x1
+    set $inWaiting  = ($resregval >>  5) & 0x1
+    set $outReady   = ($resregval >>  6) & 0x1
+    set $outWaiting = ($resregval >>  7) & 0x1
+    set $evValid    = ($resregval >>  8) & 0x1
+    set $inT        = ($resregval >> 16) & 0xff
+    set $outT       = ($resregval >> 24) & 0xff
+
+    printf "Chanend %d:\n", $chanend
+    printf "    inUse=%d, ieMode=", $inUse
+    res_print_if $ieMode "I" "E"
+    printf ", ieEnabled=%d, ready=%d, cond=", $ieEnabled, $ready
+    res_print_cond $cond
+    printf "\n    "
+    if $evValid
+      resreg $tile $resourceId $PS_EV
+      printf "EV=0x%x, ", $resregval
+    end
+    printf "inWaiting=%d, inT=%d, outWaiting=%d, outT=%d\n",\
+      $inWaiting, $inT, $outWaiting, $outT
+
+    # DEST
+    resreg $tile $resourceId $PS_DATA
+    set $dest = $resregval
+
+    printf "    dest=0x%08x\n", $dest
+  end
+end
+
+define res_print_chanends
+  set $tile = $arg0
+  set $channel = 0
+  while ($channel < $NUM_CHANENDS)
+    res_print_chanend $tile $channel
+    set $channel = $channel + 1
+  end
+end
+
+################################################################################
+# Syncs
+################################################################################
+define res_print_sync
+  set $tile = $arg0
+  set $sync = $arg1
+  set $resourceId = ($sync << 8) | $RES_TYPE_SYNC
+
+  # Read the resource register
+  resreg $tile $resourceId $PS_CTRL0
+
+  set $inUse = $resregval & 0x1
+  if ($inUse || $res_print_not_inuse)
+    set $mSynced = ($resregval >> 1) & 0x1
+    set $join    = ($resregval >> 2) & 0x1
+    set $master  = ($resregval >> 8) & 0xff
+
+    printf "Synchronizer %d:\n", $sync
+    printf "    inUse=%d, join=%d, master=Core %d\n", $inUse, $join, $master
+
+    # Slaves
+    resreg $tile $resourceId $PS_TBV0
+    set $tbv = $resregval
+
+    printf "    Slaves="
+    set $slave = 0
+    while ($slave < $NUM_CORES)
+      if (($tbv >> $slave) & 0x1)
+        printf "Core %d, ", $slave
+      end
+      set $slave = $slave + 1
+    end
+    printf "\n"
+  end
+end
+
+define res_print_syncs
+  set $tile = $arg0
+  set $sync = 0
+  while ($sync < $NUM_SYNCS)
+    res_print_sync $tile $sync
+    set $sync = $sync + 1
+  end
+end
+
+################################################################################
+# Cores
+################################################################################
+define res_print_core
+  set $tile = $arg0
+  set $core = $arg1
+  set $resourceId = ($core << 8) | $RES_TYPE_CORE
+
+  # Read the resource register
+  resreg $tile $resourceId $PS_CTRL0
+
+  set $inUse = $resregval & 0x1
+  if ($inUse || $res_print_not_inuse)
+    set $msync  = ($resregval >> 1) & 0x1
+    set $ssync  = ($resregval >> 2) & 0x1
+    set $master = ($resregval >> 8) & 0xff
+
+    printf "Core %d:\n", $core
+    printf "    inUse=%d, msync=%d, ssync=%d, master=core %d\n", $inUse, $msync, $ssync, $master
+  end
+end
+
+define res_print_cores
+  set $tile = $arg0
+  set $core = 0
+  while ($core < $NUM_CORES)
+    res_print_core $tile $core
+    set $core = $core + 1
+  end
+end
+
+################################################################################
+# Locks
+################################################################################
+define res_print_lock
+  set $tile = $arg0
+  set $lock = $arg1
+  set $resourceId = ($lock << 8) | $RES_TYPE_LOCK
+
+  # Read the resource register
+  resreg $tile $resourceId $PS_CTRL0
+
+  set $inUse = $resregval & 0x1
+  if ($inUse || $res_print_not_inuse)
+    set $owned = ($resregval >> 1) & 0x1
+    set $owner = ($resregval >> 8) & 0xff
+
+    printf "Lock %d:\n", $lock
+    printf "    inUse=%d, owned=%d, owner=core %d\n", $inUse, $owned, $owner
+
+    # Slaves
+    resreg $tile $resourceId $PS_TBV0
+    set $tbv = $resregval
+
+    printf "    Slaves="
+    set $slave = 0
+    while ($slave < $NUM_CORES)
+      if (($tbv >> $slave) & 0x1)
+        printf "Core %d, ", $slave
+      end
+      set $slave = $slave + 1
+    end
+    printf "\n"
+  end
+end
+
+define res_print_locks
+  set $tile = $arg0
+  set $lock = 0
+  while ($lock < $NUM_LOCKS)
+    res_print_lock $tile $lock
+    set $lock = $lock + 1
+  end
+end
+
+################################################################################
+# Clock Blocks
+################################################################################
+define res_print_clkblk
+  set $tile = $arg0
+  set $clkblk = $arg1
+  set $resourceId = ($clkblk << 8) | $RES_TYPE_CLKBLK
+
+  # CTRL0
+  resreg $tile $resourceId $PS_CTRL0
+
+  set $inUse = $resregval & 0x1
+  if ($inUse || $res_print_not_inuse)
+    set $started  = ($resregval >>  1) & 0x1
+    set $stopping = ($resregval >>  2) & 0x1
+    set $tWaiting = ($resregval >> 23) & 0x1
+    set $tNum     = ($resregval >> 24) & 0xff
+
+    # CTRL0
+    resreg $tile $resourceId $PS_CTRL1
+    set $fallDelay = ($resregval >> 0) & 0xff
+    set $riseDelay = ($resregval >> 16) & 0xff
+
+    printf "Clock Block %d:\n", $clkblk
+    printf "    inUse=%d, started=%d, stopping=%d, fallDelay=%d, riseDelay=%d\n",\
+      $inUse, $started, $stopping, $fallDelay, $riseDelay
+    printf "    tWaiting=%d, tNum=%d\n", $tWaiting, $tNum
+
+    # CLK/RDY source
+    resreg $tile $resourceId $PS_CLKSRC
+    set $clkSrc = $resregval
+    resreg $tile $resourceId $PS_RDYSRC
+    set $rdySrc = $resregval
+    printf "    clkSrc=0x%08x, rdySrc=0x%08x\n", $clkSrc, $rdySrc
+  end
+end
+
+define res_print_clkblks
+  set $tile = $arg0
+  set $clkblk = 0
+  while ($clkblk < $NUM_CLKBLKS)
+    res_print_clkblk $tile $clkblk
+    set $clkblk = $clkblk + 1
+  end
+end
+
+################################################################################
+# Divider
+################################################################################
+define res_print_divider
+  set $tile = $arg0
+  set $resourceId = $RES_TYPE_COPROC
+
+  # Read the resource register
+  resreg $tile $resourceId $PS_CTRL0
+
+  set $inUse = $resregval & 0x1
+  if ($inUse || $res_print_not_inuse)
+    set $owned  = ($resregval >> 1) & 0x1
+    set $owner = ($resregval >> 8) & 0xff
+
+    printf "Divider:\n"
+    printf "    inUse=%d, owned=%d, owner=core %d\n", $inUse, $owned, $owner
+
+    # Slaves
+    resreg $tile $resourceId $PS_TBV0
+    set $tbv = $resregval
+
+    printf "    Waiting="
+    set $slave = 0
+    while ($slave < $NUM_CORES)
+      if (($tbv >> $slave) & 0x1)
+        printf "Core %d, ", $slave
+      end
+      set $slave = $slave + 1
+    end
+    printf "\n"
+  end
+end
+
+################################################################################
+# Tile
+################################################################################
+define res_print_tile_resources
+  set $tile = $arg0
+
+  printf "Tile %d:\n", $tile
+  printf "--------\n"
+
+  res_print_ports $tile
+  res_print_timers $tile
+  res_print_chanends $tile
+  res_print_syncs $tile
+  res_print_cores $tile
+  res_print_locks $tile
+  res_print_clkblks $tile
+  res_print_divider $tile
+end
+
+define res_print_all
+  set $num_tiles = 2
+  set $tile = 0
+  while ($tile < $num_tiles)
+    res_print_tile_resources $tile
+    set $tile = $tile + 1
+  end
+end
