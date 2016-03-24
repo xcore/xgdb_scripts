@@ -1,0 +1,38 @@
+define install_breakpoints
+  # Check whether there are actually multiple cores
+  set $start_other_addr = &__start_other_cores + 62
+  if ($start_other_addr)
+    break __start_core
+    commands
+      getthread
+      stackfor $r1
+      set $nbytes = $nstackwords * 4
+      set $base = $sp - $nbytes
+      set $mask = 0xff - (1 << $xcore_current_thread)
+      printf "%d:%d: watchrange 0x%x %d 0x%x\n", $xcore_current_tile, $xcore_current_thread, $base, $nbytes, $mask
+      continue
+    end
+
+    # Address of the bla instruction
+    break *$start_other_addr
+    commands
+      getthread
+      stackfor $r11
+      set $nbytes = $nstackwords * 4
+      set $base = $sp - $nbytes
+      set $mask = 0xff - (1 << $xcore_current_thread)
+      printf "%d:%d: watchrange 0x%x %d 0x%x\n", $xcore_current_tile, $xcore_current_thread, $base, $nbytes, $mask
+      continue
+    end
+  end
+end
+
+connect
+
+tile 0
+install_breakpoints
+
+tile 1
+install_breakpoints
+
+run
