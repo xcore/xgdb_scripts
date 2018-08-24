@@ -68,6 +68,8 @@ reads from register at offset 0x0 which is the "Device identification" register.
 tilestate
 =========
 
+Requires 14.2.0 tools or newer.
+
 The tilestate script defines functions that can be used to debug the state of
 xCORE hardware resources.
 Example usage::
@@ -122,3 +124,14 @@ all resources, then after sourcing the tilestate script do::
 following flag after sourcing the script::
   (gdb) set $res_print_details = 1
 
+watchstack
+==========
+
+Requires 14.3.0 tools or newer.
+
+Can be run to print the stack usage of each core within a design::
+
+  gdb BIN < watchstack
+
+Note: It has to be run this way rather than the -x in order to ignore the errors when
+checking whether there are multiple cores on a tile.

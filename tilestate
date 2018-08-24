@@ -166,6 +166,13 @@ define res_print_port
     resreg $tile $resourceId $PS_RDYSRC
     set $rdySrc = $resregval
     printf "    clkSrc=0x%08x, rdySrc=0x%08x\n", $clkSrc, $rdySrc
+
+    # VECTOR/EV
+    resreg $tile $resourceId $PS_VECTOR
+    set $vector = $resregval
+    resreg $tile $resourceId $PS_EV
+    set $ev = $resregval
+    printf "    vector=0x%08x, ev=0x%08x\n", $vector, $ev
   end
 end
 
@@ -222,6 +229,13 @@ define res_print_timer
       printf "EV=0x%x, ", $resregval
     end
     printf "tWaiting=%d, tNum=%d\n", $tWaiting, $tNum
+
+    # VECTOR/EV
+    resreg $tile $resourceId $PS_VECTOR
+    set $vector = $resregval
+    resreg $tile $resourceId $PS_EV
+    set $ev = $resregval
+    printf "    vector=0x%08x, ev=0x%08x\n", $vector, $ev
   end
 end
 
@@ -260,7 +274,7 @@ define res_print_chanend
     printf "Chanend %d:\n", $chanend
     printf "    inUse=%d, ieMode=", $inUse
     res_print_if $ieMode "I" "E"
-    printf ", ieEnabled=%d, ready=%d, cond=", $ieEnabled, $ready
+    printf ", ieEnabled=%d, ready=%d, cond=", $ieEnabled, $inReady
     res_print_cond $cond
     printf "\n    "
     if $evValid
@@ -275,6 +289,13 @@ define res_print_chanend
     set $dest = $resregval
 
     printf "    dest=0x%08x\n", $dest
+
+    # VECTOR/EV
+    resreg $tile $resourceId $PS_VECTOR
+    set $vector = $resregval
+    resreg $tile $resourceId $PS_EV
+    set $ev = $resregval
+    printf "    vector=0x%08x, ev=0x%08x\n", $vector, $ev
   end
 end
 
